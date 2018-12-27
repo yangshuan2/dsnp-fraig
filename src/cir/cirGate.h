@@ -47,6 +47,7 @@ public:
    string getGateName() const { return gateName; }
    virtual unsigned getFaninLit(int=0) const { return 0; }
    bool isAig() const { return type == AIG_GATE; }
+   virtual TwoFanins getFanins() const { return TwoFanins(0, 0); }
 
    // Printing functions
    virtual void dfsTraversal(GateList&) const = 0;
@@ -65,9 +66,10 @@ public:
    virtual bool setFanin(CirGate*, bool=false, int=0) = 0;
    virtual bool setFanout(CirGate*, bool=false);
    virtual void newFanin(CirGate*, CirGate*, bool) {}
-   virtual void trivialOpt(GateList&) {};
-   virtual void rmRelatingFanouts() {};
+   virtual void trivialOpt(GateList&) {}
+   virtual void rmRelatingFanouts() {}
    void removeFanout(const CirGate*);
+   void mergeSTR(CirGate*);
    void setGateName(const string& gn) { gateName = gn; }
    static void resetGlobalRef() { _global_ref++; }
 
@@ -100,6 +102,7 @@ public:
    AIGGate(unsigned i, unsigned ln) : CirGate(i, ln, AIG_GATE) {}
    ~AIGGate() {}
    unsigned getFaninLit(int) const;
+   TwoFanins getFanins() const { return TwoFanins(fanin1, fanin2);}
    void dfsTraversal(GateList&) const;
    void printGate() const;
    void writeGate(ostream&) const;

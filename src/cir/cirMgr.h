@@ -76,8 +76,10 @@ private:
    GateList           _dfsList;
 
    // Helpers
-   void DFS();
-   void updateGateLists();
+   void     DFS();
+   void     updateGateLists();
+   void     sortAllFanouts();
+   GateList getSortedDFSList();
 };
 
 #endif // CIR_MGR_H

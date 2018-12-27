@@ -33,12 +33,7 @@ using namespace std;
 void
 CirMgr::sweep()
 {
-   GateList sortedDFSList;
-   sortedDFSList.resize(gateMap.size(), 0);
-   for(unsigned i = 0; i < _dfsList.size(); i++) {
-      unsigned id = _dfsList[i]->getID();
-      sortedDFSList[id] = _dfsList[i];
-   }
+   GateList sortedDFSList = getSortedDFSList();
    for(unsigned i = 1; i < gateMap.size(); i++) {
       if(gateMap[i] != sortedDFSList[i]) {
          assert(sortedDFSList[i] == 0);
@@ -65,6 +60,7 @@ CirMgr::optimize()
       POs[i]->trivialOpt(gateMap);
    }
    updateGateLists();
+   sortAllFanouts();
    DFS();
 }
 
@@ -151,4 +147,16 @@ AIGGate::trivialOpt(GateList& gateMap)
    cout << getID() << "..." << endl;
 
    gateMap[getID()] = 0;
+}
+
+GateList
+CirMgr::getSortedDFSList()
+{
+   GateList sortedDFSList;
+   sortedDFSList.resize(gateMap.size(), 0);
+   for(unsigned i = 0; i < _dfsList.size(); i++) {
+      unsigned id = _dfsList[i]->getID();
+      sortedDFSList[id] = _dfsList[i];
+   }
+   return sortedDFSList;
 }

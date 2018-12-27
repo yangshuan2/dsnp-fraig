@@ -34,6 +34,22 @@ using namespace std;
 void
 CirMgr::strash()
 {
+   HashMap<TwoFanins, CirGate*> hashMap(_dfsList.size());
+   for(unsigned i = 0; i < _dfsList.size(); i++) {
+      if(_dfsList[i]->getTypeStr() != "AIG") continue;
+      TwoFanins fanins = _dfsList[i]->getFanins();
+      CirGate* mergeGate;
+      if(hashMap.query(fanins, mergeGate)) {
+         // merge
+         _dfsList[i]->mergeSTR(mergeGate);
+         gateMap[_dfsList[i]->getID()] = 0;
+      }
+      else
+         hashMap.insert(fanins, _dfsList[i]);
+   }
+   updateGateLists();
+   sortAllFanouts();
+   DFS();
 }
 
 void
@@ -44,3 +60,14 @@ CirMgr::fraig()
 /********************************************/
 /*   Private member functions about fraig   */
 /********************************************/
+void
+CirGate::mergeSTR(CirGate* mergeGate)
+{
+   rmRelatingFanouts();
+   for(unsigned i = 0; i < fanouts.size(); i++) {
+      unmask(fanouts[i])->newFanin(this, mergeGate, false);
+      mergeGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]));
+   }
+   cout << "Strashing: " << mergeGate->getID()
+        << " merging " << getID() << "..." << endl;
+}

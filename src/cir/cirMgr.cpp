@@ -506,14 +506,7 @@ CirMgr::readCircuit(const string& fileName)
       fin->setFanout(POs[i], faninInv);
    }
 
-   for(unsigned i = 0; i < PIs.size(); i++)
-      PIs[i]->sortFanouts();
-   for(unsigned i = 0; i < AIGs.size(); i++)
-      AIGs[i]->sortFanouts();
-   for(unsigned i = 0; i < UNDEFs.size(); i++)
-      UNDEFs[i]->sortFanouts();
-   constGate->sortFanouts();
-   
+   sortAllFanouts();
    DFS();
 
    return true;
@@ -526,6 +519,18 @@ CirMgr::DFS() {
    for(unsigned i = 0; i < POs.size(); i++) {
       POs[i]->dfsTraversal(_dfsList);
    }
+}
+
+void
+CirMgr::sortAllFanouts()
+{
+   for(unsigned i = 0; i < PIs.size(); i++)
+      PIs[i]->sortFanouts();
+   for(unsigned i = 0; i < AIGs.size(); i++)
+      AIGs[i]->sortFanouts();
+   for(unsigned i = 0; i < UNDEFs.size(); i++)
+      UNDEFs[i]->sortFanouts();
+   constGate->sortFanouts();
 }
 
 /**********************************************************/
