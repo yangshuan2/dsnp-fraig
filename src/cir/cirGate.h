@@ -61,7 +61,7 @@ public:
    void reportFanout(int level) const;
 
    virtual bool haveFloatingFanin() const { return false; }
-   virtual bool definedNotUsed() const { return false; }
+   bool definedNotUsed() const { return fanouts.empty(); }
 
    virtual bool setFanin(CirGate*, bool=false, int=0) = 0;
    virtual bool setFanout(CirGate*, bool=false);
@@ -109,7 +109,6 @@ public:
    void countGate(unsigned&) const;
    void printFanin(int, int, bool) const;
    bool haveFloatingFanin() const;
-   bool definedNotUsed() const { return fanouts.empty(); }
    bool setFanin(CirGate*, bool, int);
    void newFanin(CirGate*, CirGate*, bool);
    void trivialOpt(GateList&);
@@ -126,7 +125,6 @@ public:
    ~PIGate() {}
    void dfsTraversal(GateList&) const;
    void printGate() const;
-   bool definedNotUsed() const { return fanouts.empty(); }
    bool setFanin(CirGate* cg, bool inv, int num) { return false; }
 };
 
