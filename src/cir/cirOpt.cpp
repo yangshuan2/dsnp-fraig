@@ -56,8 +56,10 @@ CirMgr::sweep()
 void
 CirMgr::optimize()
 {
-   for(unsigned i = 0; i < POs.size(); i++) {
-      POs[i]->trivialOpt(gateMap);
+   for(unsigned i = 1; i < gateMap.size(); i++) {
+      if(gateMap[i] == 0) continue;
+      if(gateMap[i]->getTypeStr() == "AIG")
+         gateMap[i]->trivialOpt(gateMap);
    }
    updateGateLists();
    sortAllFanouts();
@@ -70,23 +72,20 @@ CirMgr::optimize()
 void
 CirMgr::updateGateLists()
 {
+   GateList tmp;
    GateList::iterator it = AIGs.begin();
    for(; it != AIGs.end(); ++it) {
       unsigned id = (*it)->getID();
-      if(gateMap[id] == 0) {
-         delete *it;
-         it = AIGs.erase(it);
-         --it;
-      }
+      if(gateMap[id] == 0) delete *it;
+      else tmp.push_back(*it);
    }
+   AIGs = tmp;
+   tmp.clear();
    it = UNDEFs.begin();
    for(; it != UNDEFs.end(); ++it) {
       unsigned id = (*it)->getID();
-      if(gateMap[id] == 0) {
-         delete *it;
-         it = UNDEFs.erase(it);
-         --it;
-      }
+      if(gateMap[id] == 0) delete *it;
+      else tmp.push_back(*it);
    }
 }
 
@@ -95,9 +94,6 @@ extern CirMgr *cirMgr;
 void
 AIGGate::trivialOpt(GateList& gateMap)
 {
-   unmask(fanin1)->trivialOpt(gateMap);
-   unmask(fanin2)->trivialOpt(gateMap);
-
    bool const0    = false;
    bool replacing = false;
    bool replaceL  = false;

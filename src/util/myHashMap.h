@@ -153,7 +153,7 @@ public:
    bool update(const HashKey& k, HashData& d) {
       size_t n = bucketNum(k);
       for(unsigned i = 0; i < _buckets[n].size(); i++)
-         if(_buckets[n][i].first == k) { _buckets[n][i].sceond = d; return true; }
+         if(_buckets[n][i].first == k) { _buckets[n][i].second = d; return true; }
       _buckets[n].push_back(HashNode(k, d));
       return false;
    }

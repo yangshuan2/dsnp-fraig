@@ -642,6 +642,17 @@ CirMgr::printFloatGates() const
 void
 CirMgr::printFECPairs() const
 {
+   size_t number = 0;
+   for(unsigned i = 0; i < fecGrps.size(); i++) {
+      if(CirGate::isInverting(fecGrps[i][0])) continue;
+      cout << "[" << number++ << "] ";
+      for(unsigned j = 0; j < fecGrps[i].size(); j++) {
+         if(CirGate::isInverting(fecGrps[i][j])) cout << "!";
+         cout << CirGate::unmask(fecGrps[i][j])->getID();
+         if(j < fecGrps[i].size() - 1) cout << " ";
+      }
+      cout << endl;
+   }
 }
 
 void

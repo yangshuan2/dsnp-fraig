@@ -75,10 +75,15 @@ private:
    GateList           gateMap;
    GateList           _dfsList;
 
-   // Helpers
-   void     DFS();
-   void     updateGateLists();
-   void     sortAllFanouts();
+   vector<FECGroup>   fecGrps;
+
+   // Update info of gates
+   void DFS();
+   void updateGateLists();
+   void sortAllFanouts();
+   void sortFECGrps();
+
+   // Helper access methods
    GateList getSortedDFSList();
 };
 

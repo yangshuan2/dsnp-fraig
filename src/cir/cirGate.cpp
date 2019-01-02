@@ -31,7 +31,7 @@ size_t CirGate::_global_ref = 1;
 void
 CirGate::reportGate() const
 {
-   cout << "==================================================" << endl;
+   cout << "================================================================================" << endl;
 
    //ios init(NULL);
    //init.copyfmt(cout);
@@ -41,11 +41,17 @@ CirGate::reportGate() const
    if(gateName.size()) ss << "\"" << gateName << "\"";
    ss << ", line " << lineNo;
    string output = ss.str();
-   cout << output << setw(50 - output.size()) << "=" << endl;
+   cout << output << endl;
+
+   cout << "= FECs: ";
+
+   cout << endl;
+
+   cout << "= Value: " << value << endl;
    
    //cout.copyfmt(init);
    
-   cout << "==================================================" << endl;
+   cout << "================================================================================" << endl;
 }
 
 void

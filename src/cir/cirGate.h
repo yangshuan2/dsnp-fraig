@@ -32,7 +32,7 @@ public:
    virtual ~CirGate() {}
 
    // Basic access methods
-   string getTypeStr() const { 
+   string   getTypeStr() const { 
       switch(type) {
          case UNDEF_GATE: return "UNDEF";
          case PI_GATE:    return "PI";
@@ -44,13 +44,14 @@ public:
    }
    unsigned getLineNo() const { return lineNo; }
    unsigned getID() const { return id; }
-   string getGateName() const { return gateName; }
+   string   getGateName() const { return gateName; }
+   SimValue getSimValue() const { return value; }
+   bool     isAig() const { return type == AIG_GATE; }
+
    virtual unsigned getFaninLit(int=0) const { return 0; }
-   bool isAig() const { return type == AIG_GATE; }
    virtual TwoFanins getFanins() const { return TwoFanins(0, 0); }
 
    // Printing functions
-   virtual void dfsTraversal(GateList&) const = 0;
    virtual void printGate() const = 0;
    virtual void writeGate(ostream&) const {}
    virtual void countGate(unsigned&) const {}
@@ -60,20 +61,38 @@ public:
    void reportFanin(int level) const;
    void reportFanout(int level) const;
 
+   // Returning gate status
    virtual bool haveFloatingFanin() const { return false; }
    bool definedNotUsed() const { return fanouts.empty(); }
 
-   virtual bool setFanin(CirGate*, bool=false, int=0) = 0;
+   // Setting fanins/fanouts
+   virtual bool setFanin(CirGate*, bool=false, int=0) { return false; }
    virtual bool setFanout(CirGate*, bool=false);
    virtual void newFanin(CirGate*, CirGate*, bool) {}
-   virtual void trivialOpt(GateList&) {}
    virtual void rmRelatingFanouts() {}
    void removeFanout(const CirGate*);
-   void mergeSTR(CirGate*);
-   void setGateName(const string& gn) { gateName = gn; }
-   static void resetGlobalRef() { _global_ref++; }
 
+   // Optimizing functions
+   virtual void trivialOpt(GateList&) {}
+   void mergeSTR(CirGate*);
+
+   // For DFS Traversing
+   virtual void dfsTraversal(GateList&) const = 0;
+   static  void resetGlobalRef() { _global_ref++; }
+
+   // For CirMgr's use
+   void setGateName(const string& gn) { gateName = gn; }
    void sortFanouts() { sort(fanouts.begin(), fanouts.end(), compareByID); }
+
+   // Run simulation
+   virtual void simulate(SimValue=0) { value = 0; }
+   void setSimValue(SimValue v, bool i) { value = v ^ i; }
+
+   // Static helper methods
+   static CirGate* unmask(size_t ptr) { return (CirGate*)(ptr / 2 * 2); }
+   static bool isInverting(size_t ptr) { return ptr % 2; }
+   static struct { 
+      bool operator()(size_t i, size_t j) { return unmask(i)->id < unmask(j)->id; } } compareByID;
 
 private:
    unsigned id;
@@ -81,17 +100,13 @@ private:
    GateType type;
    mutable size_t _ref;
    static  size_t _global_ref;
-
-   struct { 
-      bool operator()(size_t i, size_t j) { return unmask(i)->id < unmask(j)->id; } } compareByID;
    
 protected:
-   string gateName;
-   vector<size_t> fanouts;
-
-   static CirGate* unmask(size_t ptr) { return (CirGate*)(ptr / 2 * 2); }
-   static bool isInverting(size_t ptr) { return ptr % 2; }
+   string           gateName;
+   vector<size_t>   fanouts;
+   SimValue         value;
    
+   // For DFS Traversing
    bool isVisited() const { return _ref == _global_ref; }
    void visit() const { _ref = _global_ref; }
 };
@@ -113,6 +128,7 @@ public:
    void newFanin(CirGate*, CirGate*, bool);
    void trivialOpt(GateList&);
    void rmRelatingFanouts();
+   void simulate(SimValue);
 private:
    size_t fanin1;
    size_t fanin2;
@@ -125,7 +141,7 @@ public:
    ~PIGate() {}
    void dfsTraversal(GateList&) const;
    void printGate() const;
-   bool setFanin(CirGate* cg, bool inv, int num) { return false; }
+   void simulate(SimValue v) { value = v; }
 };
 
 class POGate : public CirGate
@@ -144,8 +160,8 @@ public:
    bool setFanin(CirGate*, bool, int);
    bool setFanout(CirGate* cg, bool inv) { return false; }
    void newFanin(CirGate* o, CirGate* n, bool i) { setFanin(n, i != isInverting(fanin), 0); }
-   void trivialOpt(GateList& gateMap) { unmask(fanin)->trivialOpt(gateMap); }
    void rmRelatingFanouts() { unmask(fanin)->removeFanout(this); }
+   void simulate(SimValue) { setSimValue(unmask(fanin)->getSimValue(), isInverting(fanin)); }
 private:
    size_t fanin;
 };
@@ -157,7 +173,6 @@ public:
    ~UNDEFGate() {}
    void dfsTraversal(GateList&) const { return; }
    void printGate() const { return; }
-   bool setFanin(CirGate* cg, bool inv, int num) { return false; }
 };
 
 class CONSTGate : public CirGate
@@ -167,7 +182,6 @@ public:
    ~CONSTGate() {}
    void dfsTraversal(GateList&) const;
    void printGate() const;
-   bool setFanin(CirGate* cg, bool inv, int num) { return false; }
 };
 
 #endif // CIR_GATE_H

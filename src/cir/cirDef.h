@@ -10,6 +10,8 @@
 #define CIR_DEF_H
 
 #include <vector>
+#include <bitset>
+#include <string>
 #include "myHashMap.h"
 
 using namespace std;
@@ -22,6 +24,7 @@ class SatSolver;
 
 typedef vector<CirGate*>           GateList;
 typedef vector<unsigned>           IdList;
+typedef vector<size_t>             FECGroup;
 
 enum GateType
 {
@@ -56,6 +59,36 @@ public:
 private:
    size_t fanin1;
    size_t fanin2;
+};
+
+class SimValue
+{
+public:
+   SimValue() : _value(0) {}
+   SimValue(size_t v) : _value(v) {}
+   SimValue& operator = (size_t a)   { _value = a; return *this; }
+   SimValue& operator << (int a)     { _value <<= a; return *this; }
+   SimValue& operator += (int a)     { _value += a; return *this; }
+   size_t    operator () () const    { return _value; }
+
+   size_t operator ^ (bool i) const {
+      if(i) return ~_value;
+      else return _value;
+   }
+   size_t operator & (const SimValue& v) const { return _value & v._value; }
+   bool   operator == (const SimValue& v) const { return _value == v._value; }
+
+   friend ostream& operator << (ostream& os, const SimValue& v) {
+      bitset<sizeof(void*) * 8> btmp(v._value);
+      string stmp = btmp.to_string();
+      for(unsigned i = 0; i < stmp.size(); i++) {
+         if(i != 0 && i % 8 == 0) os << "_";
+         os << stmp[i];
+      }
+      return os;
+   }
+
+   size_t _value;
 };
 
 #endif // CIR_DEF_H
