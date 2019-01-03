@@ -41,6 +41,8 @@ void
 CirMgr::fileSim(ifstream& patternFile)
 {
    string buf;
+   unsigned patternNumber = 0;
+
    fecGrps.clear();
    FECGroup fecGrp;
 
@@ -50,18 +52,20 @@ CirMgr::fileSim(ifstream& patternFile)
       if(_dfsList[i]->getTypeStr() == "PO") continue;
       if(_dfsList[i]->getTypeStr() == "UNDEF") continue;
       fecGrp.push_back(size_t(_dfsList[i]));
-      fecGrp.push_back(size_t(_dfsList[i]) + 1);
+      //fecGrp.push_back(size_t(_dfsList[i]) + 1);
    }
 
    fecGrps.push_back(fecGrp);
 
-   while(patternFile) {
+   while(true) {
       // read pattern files
+      bool _quit = false;
       vector<SimValue> patterns;
       patterns.resize(PIs.size());
       for(unsigned i = 0; i < sizeof(void*) * 8; i++) {
          patternFile >> buf;
          if(!patternFile) {
+            if(i == 0) _quit = true;
             for(unsigned j = 0; j < buf.size(); j++) 
                patterns[j] << 1;
             continue;
@@ -71,6 +75,7 @@ CirMgr::fileSim(ifstream& patternFile)
                  << ") length(" << buf.size()
                  << ") does not match the number of inputs("
                  << PIs.size() << ") in a circuit!!\n";
+            _quit = true;
          }
          for(unsigned j = 0; j < buf.size(); j++) {
             if(buf[j] == '0')
@@ -83,9 +88,15 @@ CirMgr::fileSim(ifstream& patternFile)
                cerr << "Error: Pattern(" << buf
                     << ") contains a non-0/1 character(\'"
                     << buf[j] << "\').\n";
+               _quit = true;
             }
          }
+
+         if(_quit) break;
+         patternNumber++;
       }
+
+      if(_quit) break;
 
       constGate->simulate();
       for(unsigned i = 0; i < PIs.size(); i++) {
@@ -99,7 +110,7 @@ CirMgr::fileSim(ifstream& patternFile)
       // do simulation
       vector<FECGroup> tmpFecGrps;
       for(unsigned i = 0; i < fecGrps.size(); i++) {
-         HashMap<SimValue, FECGroup> newFecGrps(fecGrps.size());
+         HashMap<SimValue, FECGroup> newFecGrps(fecGrps[i].size());
          for(unsigned j = 0; j < fecGrps[i].size(); j++) {
             size_t gate = fecGrps[i][j];
             
@@ -108,8 +119,11 @@ CirMgr::fileSim(ifstream& patternFile)
             
             if(newFecGrps.query(val, grp)) {
                grp.push_back(gate);
-               sort(grp.begin(), grp.end(), CirGate::compareByID);
                newFecGrps.update(val, grp);
+            }
+            else if(newFecGrps.query(val ^ true, grp)) {
+               grp.push_back(gate ^= 0x1);
+               newFecGrps.update(val ^ true, grp);
             }
             else {
                grp.push_back(gate);
@@ -122,10 +136,12 @@ CirMgr::fileSim(ifstream& patternFile)
                tmpFecGrps.push_back((*it).second);
       }
       fecGrps.clear();
-      for(unsigned i = 0; i < tmpFecGrps.size(); i++)
-         fecGrps.push_back(tmpFecGrps[i]);
+      fecGrps = tmpFecGrps;
+      cout << "\rTotal #FEC Group = " << fecGrps.size();
+      cout.flush();
       //printFECPairs();
    }
+   cout << "\r" << patternNumber << " patterns simulated." << endl;
    sortFECGrps();
 }
 
@@ -147,6 +163,8 @@ AIGGate::simulate(SimValue)
 void
 CirMgr::sortFECGrps()
 {
+   for(unsigned i = 0; i < fecGrps.size(); i++)
+      sort(fecGrps[i].begin(), fecGrps[i].end(), CirGate::compareByID);
    struct {
       bool operator () (FECGroup i, FECGroup j) const {
          return CirGate::unmask(i[0])->getID() < CirGate::unmask(j[0])->getID();
