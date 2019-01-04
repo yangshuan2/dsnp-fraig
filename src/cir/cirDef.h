@@ -69,7 +69,7 @@ public:
    SimValue& operator = (size_t a)   { _value = a; return *this; }
    SimValue& operator << (int a)     { _value <<= a; return *this; }
    SimValue& operator += (int a)     { _value += a; return *this; }
-   size_t    operator () () const    { return _value; }
+   size_t    operator () () const    { return (~_value) ^ (_value >> 8); }
 
    size_t operator ^ (bool i) const {
       if(i) return ~_value;
@@ -79,11 +79,11 @@ public:
    bool   operator == (const SimValue& v) const { return _value == v._value; }
 
    friend ostream& operator << (ostream& os, const SimValue& v) {
-      bitset<sizeof(void*) * 8> btmp(v._value);
-      string stmp = btmp.to_string();
-      for(unsigned i = 0; i < stmp.size(); i++) {
+      size_t tmp = v._value;
+      for(unsigned i = 0; i < sizeof(void*) * 8; i++) {
          if(i != 0 && i % 8 == 0) os << "_";
-         os << stmp[i];
+         os << tmp % 2;
+         tmp /= 2;
       }
       return os;
    }

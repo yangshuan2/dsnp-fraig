@@ -149,6 +149,20 @@ parseError(CirParseError err)
 /**************************************************************/
 /*   class CirMgr member functions for circuit construction   */
 /**************************************************************/
+CirMgr::~CirMgr() {
+   for(unsigned i = 0; i < PIs.size(); i++)
+      delete PIs[i];
+   for(unsigned i = 0; i < POs.size(); i++)
+      delete POs[i];
+   for(unsigned i = 0; i < AIGs.size(); i++)
+      delete AIGs[i];
+   for(unsigned i = 0; i < UNDEFs.size(); i++)
+      delete UNDEFs[i];
+   delete constGate;
+   for(unsigned i = 0; i < fecGrps.size(); i++)
+      delete fecGrps[i];
+}
+
 bool
 CirMgr::readCircuit(const string& fileName)
 {
@@ -645,12 +659,12 @@ CirMgr::printFECPairs() const
    size_t number = 0;
    for(unsigned i = 0; i < fecGrps.size(); i++) {
       bool inv = false;
-      if(CirGate::isInverting(fecGrps[i][0])) inv = true;
+      if(CirGate::isInverting((*fecGrps[i])[0])) inv = true;
       cout << "[" << number++ << "] ";
-      for(unsigned j = 0; j < fecGrps[i].size(); j++) {
-         if(CirGate::isInverting(fecGrps[i][j]) ^ inv) cout << "!";
-         cout << CirGate::unmask(fecGrps[i][j])->getID();
-         if(j < fecGrps[i].size() - 1) cout << " ";
+      for(unsigned j = 0; j < fecGrps[i]->size(); j++) {
+         if(CirGate::isInverting((*fecGrps[i])[j]) ^ inv) cout << "!";
+         cout << CirGate::unmask((*fecGrps[i])[j])->getID();
+         if(j < fecGrps[i]->size() - 1) cout << " ";
       }
       cout << endl;
    }

@@ -26,7 +26,7 @@ class CirMgr
 {
 public:
    CirMgr() {}
-   ~CirMgr() {} 
+   ~CirMgr();
 
    // Access functions
    // return '0' if "gid" corresponds to an undefined gate.
@@ -75,13 +75,18 @@ private:
    GateList           gateMap;
    GateList           _dfsList;
 
-   vector<FECGroup>   fecGrps;
+   vector<FECGroup*>  fecGrps;
 
    // Update info of gates
    void DFS();
    void updateGateLists();
    void sortAllFanouts();
+
+   // Member functions about simulation
    void sortFECGrps();
+   void resetFECGrps();
+   void simulateAll(const vector<SimValue>&);
+   void identifyFECs();
 
    // Helper access methods
    GateList getSortedDFSList();
