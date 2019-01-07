@@ -184,6 +184,13 @@ AIGGate::getFaninLit(int num) const
    return 0;
 }
 
+void
+AIGGate::getFloatingFanin(CirGate*& a, CirGate*& b) const
+{
+   if(unmask(fanin1)->getTypeStr() == "UNDEF") a = unmask(fanin1);
+   if(unmask(fanin2)->getTypeStr() == "UNDEF") b = unmask(fanin2);
+}
+
 bool
 AIGGate::setFanin(CirGate* cg, bool inv, int num)
 {

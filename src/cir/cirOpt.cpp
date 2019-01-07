@@ -152,6 +152,11 @@ CirMgr::getSortedDFSList()
    for(unsigned i = 0; i < _dfsList.size(); i++) {
       unsigned id = _dfsList[i]->getID();
       sortedDFSList[id] = _dfsList[i];
+      CirGate* a = 0;
+      CirGate* b = 0;
+      _dfsList[i]->getFloatingFanin(a, b);
+      if(a != 0) sortedDFSList[a->getID()] = a;
+      if(b != 0) sortedDFSList[b->getID()] = b;
    }
    return sortedDFSList;
 }

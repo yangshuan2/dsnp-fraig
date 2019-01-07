@@ -49,6 +49,7 @@ public:
    bool     isAig() const { return type == AIG_GATE; }
 
    virtual unsigned getFaninLit(int=0) const { return 0; }
+   virtual void getFloatingFanin(CirGate*&, CirGate*&) const {}
    virtual TwoFanins getFanins() const { return TwoFanins(0, 0); }
 
    // Printing functions
@@ -117,6 +118,7 @@ public:
    AIGGate(unsigned i, unsigned ln) : CirGate(i, ln, AIG_GATE) {}
    ~AIGGate() {}
    unsigned getFaninLit(int) const;
+   void getFloatingFanin(CirGate*&, CirGate*&) const;
    TwoFanins getFanins() const { return TwoFanins(fanin1, fanin2);}
    void dfsTraversal(GateList&) const;
    void printGate() const;
@@ -150,6 +152,7 @@ public:
    POGate(unsigned i, unsigned ln) : CirGate(i, ln, PO_GATE) {}
    ~POGate() {}
    unsigned getFaninLit(int num) const { return (2 * unmask(fanin)->getID() + isInverting(fanin)); }
+   void getFloatingFanin(CirGate*& a, CirGate*&) const { if(unmask(fanin)->getTypeStr() == "UNDEF") a = unmask(fanin); }
    void dfsTraversal(GateList&) const;
    void printGate() const;
    void writeGate(ostream& os) const { unmask(fanin)->writeGate(os); }
