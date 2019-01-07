@@ -717,4 +717,37 @@ CirMgr::writeAag(ostream& outfile) const
 void
 CirMgr::writeGate(ostream& outfile, CirGate *g) const
 {
+   unsigned aigcnt = 0;
+   CirGate::resetGlobalRef();
+   g->countGate(aigcnt);
+
+   outfile << "aag " << gateMap.size() - POs.size() - 1 << " "
+           << PIs.size() << " 0 "
+           << "1" << " "
+           << aigcnt << "\n";
+
+   CirGate::resetGlobalRef();
+   // Inputs
+   for(unsigned i = 0; i < PIs.size(); i++)
+      outfile << 2 * PIs[i]->getID() << "\n";
+
+   // Outputs
+   outfile << g->getID() * 2 << "\n";
+
+   // And gates
+   g->writeGate(outfile);
+
+   // Symbolic names
+   for(unsigned i = 0; i < PIs.size(); i++) {
+      if(PIs[i]->getGateName().size() != 0) {
+         outfile << "i" << i << " "
+                 << PIs[i]->getGateName() << "\n";
+      }
+   }
+   if(g->getGateName().size() != 0) {
+      outfile << "o" << "0" << " "
+              << g->getGateName() << "\n";
+   }
+
+   outfile << "c" << endl;
 }

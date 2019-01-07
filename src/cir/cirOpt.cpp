@@ -59,7 +59,7 @@ CirMgr::optimize()
    for(unsigned i = 1; i < gateMap.size(); i++) {
       if(gateMap[i] == 0) continue;
       if(gateMap[i]->getTypeStr() == "AIG")
-         gateMap[i]->trivialOpt(gateMap);
+         gateMap[i]->trivialOpt(gateMap, constGate);
    }
    updateGateLists();
    sortAllFanouts();
@@ -87,12 +87,11 @@ CirMgr::updateGateLists()
       if(gateMap[id] == 0) delete *it;
       else tmp.push_back(*it);
    }
+   UNDEFs = tmp;
 }
 
-extern CirMgr *cirMgr;
-
 void
-AIGGate::trivialOpt(GateList& gateMap)
+AIGGate::trivialOpt(GateList& gateMap, CirGate* constGate)
 {
    bool const0    = false;
    bool replacing = false;
@@ -121,7 +120,7 @@ AIGGate::trivialOpt(GateList& gateMap)
       rmRelatingFanouts();
       for(unsigned i = 0; i < fanouts.size(); i++) {
          unmask(fanouts[i])->newFanin(this, cirMgr->getGate(0), false);
-         cirMgr->getGate(0)->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]));
+         constGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]));
       }
    }
    else if(replacing) {

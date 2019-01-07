@@ -73,7 +73,7 @@ public:
    void removeFanout(const CirGate*);
 
    // Optimizing functions
-   virtual void trivialOpt(GateList&) {}
+   virtual void trivialOpt(GateList&, CirGate*) {}
    void mergeSTR(CirGate*);
 
    // For DFS Traversing
@@ -126,7 +126,7 @@ public:
    bool haveFloatingFanin() const;
    bool setFanin(CirGate*, bool, int);
    void newFanin(CirGate*, CirGate*, bool);
-   void trivialOpt(GateList&);
+   void trivialOpt(GateList&, CirGate*);
    void rmRelatingFanouts();
    void simulate(SimValue);
 private:
