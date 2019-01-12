@@ -55,6 +55,138 @@ CirMgr::strash()
 void
 CirMgr::fraig()
 {
+   // initialize SATModel
+   SATModel satModel(gateMap.size());
+   satModel.setGate(constGate);
+   for(unsigned i = 0; i < _dfsList.size(); i++) {
+      if(_dfsList[i]->getTypeStr() != "PO")
+         satModel.setGate(_dfsList[i]);
+   }
+
+   vector<SimValue> patterns;
+   patterns.resize(PIs.size());
+   unsigned patternNumber = 0;
+
+   vector<pair<size_t, size_t>> mergeList;
+   unsigned checkTimes = 0;
+
+   // check by order of _dfsList
+   // if UNSAT => push merge list, target merging thisGate
+   // if SAT => push patterns
+   for(unsigned i = 0; i < _dfsList.size(); i++) {
+      if(_dfsList[i]->getTypeStr() != "AIG") continue;
+
+      size_t fecGrp_size_t = cirMgr->getFECGrp(_dfsList[i]->getID());
+      if(fecGrp_size_t == 0) continue;
+
+      FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
+
+      bool inv = CirGate::isInverting(fecGrp_size_t) ^ 
+         CirGate::isInverting((*fecGrp)[0]);
+      size_t thisGate = size_t(_dfsList[i]) ^ inv;
+      size_t target = (*fecGrp)[checkTimes];
+
+      if(thisGate == target) { checkTimes = 0; continue; }
+      if(target == 0) { checkTimes++; i--; continue; }
+
+      cout << "\r                                   \r";
+      
+      cout << "Proving (";
+      if(CirGate::isInverting(target)) cout << '!';
+      cout << CirGate::unmask(target)->getID() << ", ";
+      if(CirGate::isInverting(thisGate)) cout << '!';
+      cout << CirGate::unmask(thisGate)->getID() << ")...";
+      cout.flush();
+      
+      if(satModel.prove(thisGate, target)) {
+         cout << "SAT!!";
+         cout.flush();
+
+         for(unsigned j = 0; j < PIs.size(); j++) {
+            int satVal = satModel.getValue(PIs[j]->getID());
+            assert(satVal != -1);
+            patterns[j] << 1;
+            if(satVal == 1)
+               patterns[j] += 1;
+         }
+         patternNumber++;
+
+         checkTimes++; i--;
+      }
+      else {
+         cout << "UNSAT!!";
+         cout.flush();
+
+         mergeList.push_back(make_pair(target, thisGate));
+         checkTimes = 0;
+      }
+      
+
+      if(patternNumber == 32) {
+         cout << "\rUpdating by SAT... ";
+         simulateAll(patterns);
+         identifyFECs();
+         sortFECGrps();
+         cout << endl;
+         patternNumber = 0;
+         checkTimes = 0;
+      }
+      else if(mergeList.size() > 400) {
+         cout << "\r                                   \r";
+         for(unsigned j = 0; j < mergeList.size(); j++) {
+            CirGate* thisG = CirGate::unmask(mergeList[j].second);
+            CirGate* trgtG = CirGate::unmask(mergeList[j].first);
+            bool inv =  CirGate::isInverting(mergeList[j].second) ^
+               CirGate::isInverting(mergeList[j].first);
+            thisG->mergeFRAIG(trgtG, inv);
+            deleteFromFECGrp(thisG);
+            gateMap[thisG->getID()] = 0;
+         }
+         cout << "Updating by UNSAT... ";
+         identifyFECs();
+         sortFECGrps();
+         mergeList.clear();
+         cout << endl;
+
+         cout << "Updating by SAT... ";
+         simulateAll(patterns);
+         identifyFECs();
+         sortFECGrps();
+         cout << endl;
+         patternNumber = 0;
+         checkTimes = 0;
+      }
+   }
+   cout << "\r                                   \r";
+   for(unsigned j = 0; j < mergeList.size(); j++) {
+      CirGate* thisG = CirGate::unmask(mergeList[j].second);
+      CirGate* trgtG = CirGate::unmask(mergeList[j].first);
+      bool inv =  CirGate::isInverting(mergeList[j].second) ^
+         CirGate::isInverting(mergeList[j].first);
+      thisG->mergeFRAIG(trgtG, inv);
+      deleteFromFECGrp(thisG);
+      gateMap[thisG->getID()] = 0;
+   }
+   cout << "Updating by UNSAT... ";
+   identifyFECs();
+   sortFECGrps();
+   mergeList.clear();
+   cout << endl;
+
+   cout << "Updating by SAT... ";
+   simulateAll(patterns);
+   identifyFECs();
+   sortFECGrps();
+   cout << endl;
+
+   simulated = false;
+
+   updateGateLists();
+   sortAllFanouts();
+   DFS();
+
+   strash();
+
 }
 
 /********************************************/
@@ -68,6 +200,73 @@ CirGate::mergeSTR(CirGate* mergeGate)
       unmask(fanouts[i])->newFanin(this, mergeGate, false);
       mergeGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]));
    }
+   // a merging b => b be deleted
    cout << "Strashing: " << mergeGate->getID()
         << " merging " << getID() << "..." << endl;
+}
+
+void
+CirGate::mergeFRAIG(CirGate* mergeGate, bool inv)
+{
+   rmRelatingFanouts();
+   for(unsigned i = 0; i < fanouts.size(); i++) {
+      unmask(fanouts[i])->newFanin(this, mergeGate, inv);
+      mergeGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]) ^ inv);
+   }
+   // a merging b => b be deleted
+   cout << "Fraig: " << mergeGate->getID() << " merging ";
+   if(inv) cout << '!';
+   cout << getID() << "..." << endl;
+}
+
+void
+CirMgr::deleteFromFECGrp(CirGate* gate)
+{
+   size_t fecGrp_size_t = getFECGrp(gate->getID());
+   if(fecGrp_size_t == 0) return;
+   FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
+   for(unsigned i = 0; i < fecGrp->size(); i++) {
+      if(CirGate::unmask((*fecGrp)[i]) == gate)
+         (*fecGrp)[i] = 0;
+   }
+   fecGrpMap[gate->getID()] = 0;
+}
+
+/********************************************/
+/*      Member functions of SATModel        */
+/********************************************/
+void
+SATModel::setGate(CirGate* gate)
+{
+   Var vf = solver.newVar();
+   varMap[gate->getID()] = vf;
+   if(gate->getTypeStr() == "CONST") {
+      Var vv = solver.newVar();
+      varMap[0] = vv;
+      solver.addAigCNF(vv, vf, false, vf, true);
+   }
+   if(gate->getTypeStr() != "AIG") return;
+
+   Var  va = varMap[gate->getFaninLit(1) / 2];
+   Var  vb = varMap[gate->getFaninLit(2) / 2];
+   bool fa = gate->getFaninLit(1) % 2;
+   bool fb = gate->getFaninLit(2) % 2;
+
+   solver.addAigCNF(vf, va, fa, vb, fb);
+}
+
+bool
+SATModel::prove(size_t a, size_t b)
+{
+   Var  vf = solver.newVar();
+   Var  va = varMap[CirGate::unmask(a)->getID()];
+   Var  vb = varMap[CirGate::unmask(b)->getID()];
+   bool fa = CirGate::isInverting(a);
+   bool fb = CirGate::isInverting(b);
+
+   solver.addXorCNF(vf, va, fa, vb, fb);
+   solver.assumeRelease();
+   solver.assumeProperty(vf, true);
+
+   return solver.assumpSolve();
 }

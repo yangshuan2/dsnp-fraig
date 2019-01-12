@@ -43,8 +43,17 @@ CirGate::reportGate() const
    string output = ss.str();
    cout << output << endl;
 
-   cout << "= FECs: ";
-
+   size_t fecGrp_size_t = cirMgr->getFECGrp(id);
+   FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
+   bool inv = isInverting(fecGrp_size_t);
+   cout << "= FECs:";
+   if(fecGrp_size_t != 0)
+      for(unsigned i = 0; i < fecGrp->size(); i++) {
+         if(unmask((*fecGrp)[i]) == this) continue;
+         cout << ' ';
+         if(isInverting((*fecGrp)[i]) != inv) cout << '!';
+         cout << unmask((*fecGrp)[i])->id;
+      }
    cout << endl;
 
    cout << "= Value: " << value << endl;
@@ -352,4 +361,32 @@ CONSTGate::printGate() const
 {
    cout << "CONST0" << endl;
    
+}
+
+/********************
+***    cirDef.h   ***
+********************/
+
+bool
+TwoFanins::operator == (const TwoFanins& t) const
+{
+   if(fanin1 / 2 == t.fanin1 / 2 && fanin2 / 2 == t.fanin2 / 2)
+      if((fanin1 % 2 == t.fanin1 % 2) && (fanin2 % 2 == t.fanin2 % 2))
+         return true;
+   if(fanin1 / 2 == t.fanin2 / 2 && fanin2 / 2 == t.fanin1 / 2)
+      if((fanin1 % 2 == t.fanin2 % 2) && (fanin2 % 2 == t.fanin1 % 2))
+         return true;
+   return false;
+}
+
+ostream& 
+operator << (ostream& os, const SimValue& v) 
+{
+   size_t tmp = v._value;
+   for(unsigned i = 0; i < sizeof(void*) * 8; i++) {
+      if(i != 0 && i % 8 == 0) os << "_";
+      os << tmp % 2;
+      tmp /= 2;
+   }
+   return os;
 }

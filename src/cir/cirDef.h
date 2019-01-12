@@ -42,21 +42,13 @@ class TwoFanins
 public:
    TwoFanins(size_t a , size_t b) : fanin1(a), fanin2(b) {}
    ~TwoFanins() {}
-   bool operator == (const TwoFanins& t) const {
-      if(fanin1 / 2 == t.fanin1 / 2 && fanin2 / 2 == t.fanin2 / 2)
-         if((fanin1 % 2 == t.fanin1 % 2) && (fanin2 % 2 == t.fanin2 % 2))
-            return true;
-      if(fanin1 / 2 == t.fanin2 / 2 && fanin2 / 2 == t.fanin1 / 2)
-         if((fanin1 % 2 == t.fanin2 % 2) && (fanin2 % 2 == t.fanin1 % 2))
-            return true;
-      return false;
-   }
+   bool operator == (const TwoFanins& t) const;
    size_t operator () () const {
       size_t x = fanin1 * 0.578125;
       size_t y = fanin2 * 0.578125;
       return (x ^ y);
    }
-private:
+   
    size_t fanin1;
    size_t fanin2;
 };
@@ -71,22 +63,11 @@ public:
    SimValue& operator += (int a)     { _value += a; return *this; }
    size_t    operator () () const    { return (~_value) ^ (_value >> 8); }
 
-   size_t operator ^ (bool i) const {
-      if(i) return ~_value;
-      else return _value;
-   }
+   size_t operator ^ (bool i) const { if(i) return ~_value; else return _value; }
    size_t operator & (const SimValue& v) const { return _value & v._value; }
    bool   operator == (const SimValue& v) const { return _value == v._value; }
 
-   friend ostream& operator << (ostream& os, const SimValue& v) {
-      size_t tmp = v._value;
-      for(unsigned i = 0; i < sizeof(void*) * 8; i++) {
-         if(i != 0 && i % 8 == 0) os << "_";
-         os << tmp % 2;
-         tmp /= 2;
-      }
-      return os;
-   }
+   friend ostream& operator << (ostream& os, const SimValue& v);
 
    size_t _value;
 };

@@ -86,7 +86,10 @@ CirMgr::fileSim(ifstream& patternFile)
 
       if(_quit) break;
       simulateAll(patterns);
+      cout << '\r';
       identifyFECs();
+
+      simulated = true;
    }
 
    cout << "\r" << patternNumber << " patterns simulated." << endl;
@@ -119,6 +122,15 @@ CirMgr::sortFECGrps()
       }
    } compare;
    sort(fecGrps.begin(), fecGrps.end(), compare);
+
+   // generate fecGrpMap
+   fecGrpMap.clear();
+   fecGrpMap.resize(gateMap.size());
+   for(unsigned i = 0; i < fecGrps.size(); i++) {
+      for(unsigned j = 0; j < fecGrps[i]->size(); j++) {
+         fecGrpMap[CirGate::unmask((*fecGrps[i])[j])->getID()] = i + 1;
+      }
+   }
 }
 
 void
@@ -151,7 +163,7 @@ CirMgr::simulateAll(const vector<SimValue>& patterns)
 void
 CirMgr::identifyFECs()
 {
-   if(fecGrps.size() == 0) resetFECGrps();
+   if(!simulated) resetFECGrps();
 
    vector<FECGroup*> tmpFecGrps;
    for(unsigned i = 0; i < fecGrps.size(); i++) {
@@ -159,6 +171,8 @@ CirMgr::identifyFECs()
       for(unsigned j = 0; j < fecGrps[i]->size(); j++) {
          size_t gate = (*fecGrps[i])[j];
          
+         if(gate == 0) continue;
+
          FECGroup* grp;
          SimValue val = CirGate::unmask(gate)->getSimValue() ^ CirGate::isInverting(gate);
           
@@ -186,6 +200,6 @@ CirMgr::identifyFECs()
    }
    fecGrps.clear();
    fecGrps = tmpFecGrps;
-   cout << "\rTotal #FEC Group = " << fecGrps.size();
+   cout << "Total #FEC Group = " << fecGrps.size();
    cout.flush();
 }

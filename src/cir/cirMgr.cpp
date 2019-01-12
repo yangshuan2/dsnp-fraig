@@ -163,6 +163,23 @@ CirMgr::~CirMgr() {
       delete fecGrps[i];
 }
 
+size_t 
+CirMgr::getFECGrp(unsigned gid) const 
+{
+   if(!simulated) return 0;
+   FECGroup* ret;
+   if(fecGrpMap[gid] == 0) return 0;
+   else ret = fecGrps[fecGrpMap[gid] - 1];
+   for(unsigned i = 0; i < ret->size(); i++) {
+      if(CirGate::unmask((*ret)[i]) == getGate(gid)) 
+         return size_t(ret) ^ 
+            (CirGate::isInverting((*ret)[i]) ^
+             CirGate::isInverting((*ret)[0]));
+   }
+   cerr << gid << '\n';
+   assert(0);
+}
+
 bool
 CirMgr::readCircuit(const string& fileName)
 {

@@ -19,13 +19,14 @@ using namespace std;
 // TODO: Feel free to define your own classes, variables, or functions.
 
 #include "cirDef.h"
+#include "sat.h"
 
 extern CirMgr *cirMgr;
 
 class CirMgr
 {
 public:
-   CirMgr() {}
+   CirMgr() : simulated(false) {}
    ~CirMgr();
 
    // Access functions
@@ -34,6 +35,7 @@ public:
       if(gid >= gateMap.size()) return 0;
       return gateMap[gid];
    }
+   size_t getFECGrp(unsigned gid) const;
 
    // Member functions about circuit construction
    bool readCircuit(const string&);
@@ -76,6 +78,9 @@ private:
    GateList           _dfsList;
 
    vector<FECGroup*>  fecGrps;
+   IdList             fecGrpMap;
+
+   bool               simulated;
 
    // Update info of gates
    void DFS();
@@ -88,8 +93,25 @@ private:
    void simulateAll(const vector<SimValue>&);
    void identifyFECs();
 
+   // Member functions about fraig
+   void deleteFromFECGrp(CirGate*);
+
    // Helper access methods
    GateList getSortedDFSList();
+};
+
+class SATModel
+{
+   friend class CirMgr;
+public:
+   SATModel(unsigned sz) { solver.initialize(); varMap.resize(sz); }
+   void setGate(CirGate*);
+   bool prove(size_t, size_t);
+
+   int getValue(unsigned i) { return solver.getValue(varMap[i]); }
+private:
+   SatSolver   solver;
+   vector<Var> varMap;
 };
 
 #endif // CIR_MGR_H
