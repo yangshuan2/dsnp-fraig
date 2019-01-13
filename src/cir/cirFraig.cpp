@@ -7,6 +7,7 @@
 ****************************************************************************/
 
 #include <cassert>
+#include <queue>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "sat.h"
@@ -55,6 +56,10 @@ CirMgr::strash()
 void
 CirMgr::fraig()
 {
+   GateList _bfsList;
+   BFS(_bfsList);
+   cout << "size of _bfsList: " << _bfsList.size() << endl;
+
    // initialize SATModel
    SATModel satModel(gateMap.size());
    satModel.setGate(constGate);
@@ -63,12 +68,21 @@ CirMgr::fraig()
          satModel.setGate(_dfsList[i]);
    }
 
+   // collect SAT patterns
    vector<SimValue> patterns;
    patterns.resize(PIs.size());
    unsigned patternNumber = 0;
 
+   // the list of pairs of gates to merge
    vector<pair<size_t, size_t>> mergeList;
+   
+   // to iterate a single FEC group
    unsigned checkTimes = 0;
+
+   // to avoid proving identical statements
+   vector<bool> checkMap;
+   checkMap.resize(gateMap.size(), false);
+   checkMap[0] = true;
 
    // check by order of _dfsList
    // if UNSAT => push merge list, target merging thisGate
@@ -80,15 +94,23 @@ CirMgr::fraig()
       if(fecGrp_size_t == 0) continue;
 
       FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
+      if(checkTimes >= fecGrp->size()) { checkTimes = 0; continue; }
 
       bool inv = CirGate::isInverting(fecGrp_size_t) ^ 
          CirGate::isInverting((*fecGrp)[0]);
       size_t thisGate = size_t(_dfsList[i]) ^ inv;
       size_t target = (*fecGrp)[checkTimes];
 
-      if(thisGate == target) { checkTimes = 0; continue; }
+      if(thisGate == target) { 
+         checkMap[CirGate::unmask(thisGate)->getID()] = true;
+         checkTimes++; i--; continue; 
+      }
       if(target == 0) { checkTimes++; i--; continue; }
+      if(checkMap[CirGate::unmask(target)->getID()] == false) {
+         checkTimes++; i--; continue;
+      }
 
+      checkMap[CirGate::unmask(thisGate)->getID()] = true;
       cout << "\r                                   \r";
       
       cout << "Proving (";
@@ -118,10 +140,10 @@ CirMgr::fraig()
          cout.flush();
 
          mergeList.push_back(make_pair(target, thisGate));
+         deleteFromFECGrp(CirGate::unmask(thisGate));
          checkTimes = 0;
       }
       
-
       if(patternNumber == 32) {
          cout << "\rUpdating by SAT... ";
          simulateAll(patterns);
@@ -139,7 +161,6 @@ CirMgr::fraig()
             bool inv =  CirGate::isInverting(mergeList[j].second) ^
                CirGate::isInverting(mergeList[j].first);
             thisG->mergeFRAIG(trgtG, inv);
-            deleteFromFECGrp(thisG);
             gateMap[thisG->getID()] = 0;
          }
          cout << "Updating by UNSAT... ";
@@ -157,6 +178,7 @@ CirMgr::fraig()
          checkTimes = 0;
       }
    }
+
    cout << "\r                                   \r";
    for(unsigned j = 0; j < mergeList.size(); j++) {
       CirGate* thisG = CirGate::unmask(mergeList[j].second);
@@ -164,7 +186,6 @@ CirMgr::fraig()
       bool inv =  CirGate::isInverting(mergeList[j].second) ^
          CirGate::isInverting(mergeList[j].first);
       thisG->mergeFRAIG(trgtG, inv);
-      deleteFromFECGrp(thisG);
       gateMap[thisG->getID()] = 0;
    }
    cout << "Updating by UNSAT... ";
@@ -222,14 +243,30 @@ CirGate::mergeFRAIG(CirGate* mergeGate, bool inv)
 void
 CirMgr::deleteFromFECGrp(CirGate* gate)
 {
-   size_t fecGrp_size_t = getFECGrp(gate->getID());
-   if(fecGrp_size_t == 0) return;
-   FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
+   if(fecGrpMap[gate->getID()] == 0) return;
+   FECGroup* fecGrp = fecGrps[fecGrpMap[gate->getID()] - 1];
    for(unsigned i = 0; i < fecGrp->size(); i++) {
       if(CirGate::unmask((*fecGrp)[i]) == gate)
          (*fecGrp)[i] = 0;
    }
    fecGrpMap[gate->getID()] = 0;
+}
+
+void
+CirMgr::BFS(GateList& _bfsList) const
+{
+   if(PIs.size() == 0) return;
+   GateList dfsMap = getSortedDFSList();
+   CirGate::resetGlobalRef();
+   queue<CirGate*> _queue;
+   for(unsigned i = 0; i < PIs.size(); i++) {
+      _queue.push(PIs[i]);
+   }
+   while(!_queue.empty()) {
+      if(dfsMap[_queue.front()->getID()] != 0)
+         _queue.front()->bfsTraversal(_bfsList, _queue);
+      _queue.pop();
+   }
 }
 
 /********************************************/

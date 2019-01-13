@@ -145,7 +145,7 @@ AIGGate::trivialOpt(GateList& gateMap, CirGate* constGate)
 }
 
 GateList
-CirMgr::getSortedDFSList()
+CirMgr::getSortedDFSList() const
 {
    GateList sortedDFSList;
    sortedDFSList.resize(gateMap.size(), 0);

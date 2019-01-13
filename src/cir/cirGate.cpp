@@ -128,6 +128,18 @@ CirGate::removeFanout(const CirGate* torm)
       }
 }
 
+void
+CirGate::bfsTraversal(GateList& _bfsList, queue<CirGate*>& _queue) const
+{
+   if(isVisited()) return;
+   else visit();
+
+   _bfsList.push_back((CirGate*)this);
+   for(unsigned i = 0; i < fanouts.size(); i++) {
+      _queue.push(unmask(fanouts[i]));
+   }
+}
+
 /********************
 ***      AIG      ***
 ********************/
@@ -214,6 +226,7 @@ AIGGate::setFanin(CirGate* cg, bool inv, int num)
 void
 AIGGate::newFanin(CirGate* o, CirGate* n, bool i)
 {
+   assert(unmask(fanin1) == o || unmask(fanin2) == o);
    if(unmask(fanin1) == o) setFanin(n, i != isInverting(fanin1), 1);
    if(unmask(fanin2) == o) setFanin(n, i != isInverting(fanin2), 2);
 }
