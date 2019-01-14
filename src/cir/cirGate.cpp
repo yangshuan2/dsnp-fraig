@@ -128,18 +128,6 @@ CirGate::removeFanout(const CirGate* torm)
       }
 }
 
-void
-CirGate::bfsTraversal(GateList& _bfsList, queue<CirGate*>& _queue) const
-{
-   assert(!isVisited());
-   visit();
-
-   _bfsList.push_back((CirGate*)this);
-   for(unsigned i = 0; i < fanouts.size(); i++) {
-      _queue.push(unmask(fanouts[i]));
-   }
-}
-
 /********************
 ***      AIG      ***
 ********************/

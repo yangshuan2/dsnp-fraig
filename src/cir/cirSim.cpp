@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cassert>
 #include <string>
+#include <limits>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
@@ -35,6 +36,8 @@ using namespace std;
 void
 CirMgr::randomSim()
 {
+   cout << rnGen(INT_MAX) << endl;
+   cout << SimValue(numeric_limits<size_t>::max()) << endl;
 }
 
 void

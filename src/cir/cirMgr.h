@@ -94,7 +94,6 @@ private:
    void identifyFECs();
 
    // Member functions about fraig
-   void BFS(GateList&) const;
    void deleteFromFECGrp(CirGate*);
 
    // Helper access methods

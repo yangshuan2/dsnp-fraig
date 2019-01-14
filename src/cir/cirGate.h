@@ -81,7 +81,6 @@ public:
 
    // For DFS and BFS Traversing
    virtual void dfsTraversal(GateList&) const = 0;
-   void bfsTraversal(GateList&, queue<CirGate*>&) const;
    static  void resetGlobalRef() { _global_ref++; }
 
    // For CirMgr's use

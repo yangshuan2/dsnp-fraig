@@ -56,27 +56,21 @@ CirMgr::strash()
 void
 CirMgr::fraig()
 {
-   GateList _bfsList;
-   BFS(_bfsList);
-   cout << "size of _bfsList: " << _bfsList.size() << endl;
-   cout << "size of _dfsList: " << _dfsList.size() << endl;
-
    // initialize SATModel
    SATModel satModel(gateMap.size());
    satModel.setGate(constGate);
-   for(unsigned i = 0; i < PIs.size(); i++) {
-      satModel.setGate(PIs[i]);
+   for(unsigned i = 0; i < _dfsList.size(); i++) {
+      if(_dfsList[i]->getTypeStr() != "PO")
+         satModel.setGate(_dfsList[i]);
    }
-   
+
    // collect SAT patterns
    vector<SimValue> patterns;
    patterns.resize(PIs.size());
    unsigned patternNumber = 0;
 
    // the list of pairs of gates to merge
-   vector<size_t> mergeMap;
-   mergeMap.resize(gateMap.size(), 0);
-   unsigned mergeCount = 0;
+   vector<pair<size_t, size_t>> mergeList;
    
    // to iterate a single FEC group
    unsigned checkTimes = 0;
@@ -86,26 +80,21 @@ CirMgr::fraig()
    checkMap.resize(gateMap.size(), false);
    checkMap[0] = true;
 
-   // check by order of _bfsList
+   // check by order of _dfsList
    // if UNSAT => push merge list, target merging thisGate
    // if SAT => push patterns
-   GateList& iterateList = _dfsList;
+   for(unsigned i = 0; i < _dfsList.size(); i++) {
+      if(_dfsList[i]->getTypeStr() != "AIG") continue;
 
-   for(unsigned i = 0; i < iterateList.size(); i++) {
-      satModel.setGate(iterateList[i]);
-      if(iterateList[i]->getTypeStr() != "AIG") continue;
+      size_t fecGrp_size_t = cirMgr->getFECGrp(_dfsList[i]->getID());
+      if(fecGrp_size_t == 0) continue;
 
-      if(fecGrpMap[iterateList[i]->getID()] == 0) { checkTimes = 0; continue; }
-      FECGroup* fecGrp = fecGrps[fecGrpMap[iterateList[i]->getID()] - 1];
+      FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
       if(checkTimes >= fecGrp->size()) { checkTimes = 0; continue; }
 
-      size_t thisGate = 0;
-      for(unsigned j = 0; j < fecGrp->size(); j++) {
-         if(CirGate::unmask((*fecGrp)[j]) == iterateList[i])
-            thisGate = (*fecGrp)[j];
-      }
-      assert(thisGate != 0);
-
+      bool inv = CirGate::isInverting(fecGrp_size_t) ^ 
+         CirGate::isInverting((*fecGrp)[0]);
+      size_t thisGate = size_t(_dfsList[i]) ^ inv;
       size_t target = (*fecGrp)[checkTimes];
 
       if(thisGate == target) { 
@@ -140,47 +129,40 @@ CirMgr::fraig()
          }
          patternNumber++;
 
-         // if(CirGate::unmask(target) != constGate) { checkTimes++; i--; }
-         // else checkTimes = 0;
          checkTimes++; i--;
       }
       else {
          cout << "UNSAT!!";
          cout.flush();
 
-         if(CirGate::isInverting(thisGate)) target ^= 0x1;
-         mergeMap[iterateList[i]->getID()] = target;
-         mergeCount++;
+         mergeList.push_back(make_pair(target, thisGate));
          deleteFromFECGrp(CirGate::unmask(thisGate));
          checkTimes = 0;
       }
       
-      if(patternNumber == sizeof(void*) * 8) {
+      if(patternNumber == 32) {
          cout << "\rUpdating by SAT... ";
          simulateAll(patterns);
          identifyFECs();
          sortFECGrps();
          cout << endl;
-         patterns.assign(PIs.size(), 0);
          patternNumber = 0;
          checkTimes = 0;
       }
-      else if(mergeCount > 400) {
+      else if(mergeList.size() > 400) {
          cout << "\r                                   \r";
-         for(unsigned j = 0; j < _dfsList.size(); j++) {
-            CirGate* thisG = _dfsList[j];
-            if(mergeMap[thisG->getID()] == 0) continue;
-            CirGate* trgtG = CirGate::unmask(mergeMap[thisG->getID()]);
-            bool inv =  CirGate::isInverting(mergeMap[thisG->getID()]);
+         for(unsigned j = 0; j < mergeList.size(); j++) {
+            CirGate* thisG = CirGate::unmask(mergeList[j].second);
+            CirGate* trgtG = CirGate::unmask(mergeList[j].first);
+            bool inv =  CirGate::isInverting(mergeList[j].second) ^
+               CirGate::isInverting(mergeList[j].first);
             thisG->mergeFRAIG(trgtG, inv);
-            satModel.setGate(trgtG);
             gateMap[thisG->getID()] = 0;
          }
          cout << "Updating by UNSAT... ";
          identifyFECs();
          sortFECGrps();
-         mergeMap.assign(gateMap.size(), 0);
-         mergeCount = 0;
+         mergeList.clear();
          cout << endl;
 
          cout << "Updating by SAT... ";
@@ -188,28 +170,24 @@ CirMgr::fraig()
          identifyFECs();
          sortFECGrps();
          cout << endl;
-         patterns.assign(PIs.size(), 0);
          patternNumber = 0;
          checkTimes = 0;
       }
-
    }
 
    cout << "\r                                   \r";
-   for(unsigned j = 0; j < _dfsList.size(); j++) {
-      CirGate* thisG = _dfsList[j];
-      if(mergeMap[thisG->getID()] == 0) continue;
-      CirGate* trgtG = CirGate::unmask(mergeMap[thisG->getID()]);
-      bool inv =  CirGate::isInverting(mergeMap[thisG->getID()]);
+   for(unsigned j = 0; j < mergeList.size(); j++) {
+      CirGate* thisG = CirGate::unmask(mergeList[j].second);
+      CirGate* trgtG = CirGate::unmask(mergeList[j].first);
+      bool inv =  CirGate::isInverting(mergeList[j].second) ^
+         CirGate::isInverting(mergeList[j].first);
       thisG->mergeFRAIG(trgtG, inv);
-      satModel.setGate(trgtG);
       gateMap[thisG->getID()] = 0;
    }
    cout << "Updating by UNSAT... ";
    identifyFECs();
    sortFECGrps();
-   mergeMap.assign(gateMap.size(), 0);
-   mergeCount = 0;
+   mergeList.clear();
    cout << endl;
 
    cout << "Updating by SAT... ";
@@ -225,10 +203,6 @@ CirMgr::fraig()
    DFS();
 
    strash();
-
-   _bfsList.clear();
-   BFS(_bfsList);
-   assert(_bfsList.size() == _dfsList.size());
 
 }
 
@@ -274,49 +248,6 @@ CirMgr::deleteFromFECGrp(CirGate* gate)
    fecGrpMap[gate->getID()] = 0;
 }
 
-void
-CirMgr::BFS(GateList& _bfsList) const
-{
-   if(PIs.size() == 0) return;
-   GateList dfsMap = getSortedDFSList();
-   vector<bool> traverseMap;
-   traverseMap.resize(gateMap.size(), false);
-   CirGate::resetGlobalRef();
-   queue<CirGate*> _queue;
-   if(_dfsList[0] != 0)
-      _queue.push(constGate);
-   while(!_queue.empty()) {
-      if(_queue.front()->getTypeStr() == "AIG" &&
-         traverseMap[_queue.front()->getID()] == false)
-         traverseMap[_queue.front()->getID()] = true;
-      else if(dfsMap[_queue.front()->getID()] != 0)
-         _queue.front()->bfsTraversal(_bfsList, _queue);
-      _queue.pop();
-   }
-   for(unsigned i = 0; i < PIs.size(); i++) {
-      _queue.push(PIs[i]);
-      while(!_queue.empty()) {
-         if(_queue.front()->getTypeStr() == "AIG" &&
-            traverseMap[_queue.front()->getID()] == false)
-            traverseMap[_queue.front()->getID()] = true;
-         else if(dfsMap[_queue.front()->getID()] != 0)
-            _queue.front()->bfsTraversal(_bfsList, _queue);
-         _queue.pop();
-      }
-   }
-   for(unsigned i = 0; i < UNDEFs.size(); i++) {
-      _queue.push(UNDEFs[i]);
-      while(!_queue.empty()) {
-         if(_queue.front()->getTypeStr() == "AIG" &&
-            traverseMap[_queue.front()->getID()] == false)
-            traverseMap[_queue.front()->getID()] = true;
-         else if(dfsMap[_queue.front()->getID()] != 0)
-            _queue.front()->bfsTraversal(_bfsList, _queue);
-         _queue.pop();
-      }
-   }
-}
-
 /********************************************/
 /*      Member functions of SATModel        */
 /********************************************/
@@ -324,12 +255,11 @@ void
 SATModel::setGate(CirGate* gate)
 {
    Var vf = solver.newVar();
-   if(gate->getTypeStr() == "CONST" || 
-      gate->getTypeStr() == "UNDEF") {
+   varMap[gate->getID()] = vf;
+   if(gate->getTypeStr() == "CONST") {
       Var vv = solver.newVar();
-      varMap[gate->getID()] = vv;
+      varMap[0] = vv;
       solver.addAigCNF(vv, vf, false, vf, true);
-      return;
    }
    if(gate->getTypeStr() != "AIG") return;
 
@@ -339,7 +269,6 @@ SATModel::setGate(CirGate* gate)
    bool fb = gate->getFaninLit(2) % 2;
 
    solver.addAigCNF(vf, va, fa, vb, fb);
-   varMap[gate->getID()] = vf;
 }
 
 bool
