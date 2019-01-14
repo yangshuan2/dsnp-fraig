@@ -129,7 +129,10 @@ CirMgr::fraig()
          }
          patternNumber++;
 
-         checkTimes++; i--;
+         // checkTimes++; i--;
+
+         if(checkTimes >= 8) { checkTimes++; i--; }
+         else { deleteFromFECGrp(CirGate::unmask(thisGate)); checkTimes = 0; }
       }
       else {
          cout << "UNSAT!!";

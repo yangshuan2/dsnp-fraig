@@ -36,8 +36,44 @@ using namespace std;
 void
 CirMgr::randomSim()
 {
-   cout << rnGen(INT_MAX) << endl;
-   cout << SimValue(numeric_limits<size_t>::max()) << endl;
+   unsigned patternNumber = 0;
+
+   unsigned fecGrpCnt = 1;
+   unsigned firstGrpCnt = gateMap.size();
+
+   bool _quit = false;
+   while(!_quit) {
+      vector<SimValue> patterns;
+      patterns.resize(PIs.size());
+
+      unsigned intbits = (sizeof(int) - 1) * 8;
+      unsigned sztbits = sizeof(size_t) * 8;
+
+      for(unsigned i = 0; i < PIs.size(); i++) {
+         for(unsigned j = 0; j < sztbits; j += intbits) {
+            patterns[i] << intbits;
+            patterns[i] += rnGen(INT_MAX);
+         }
+      }
+      patternNumber += sztbits;
+      
+      simulateAll(patterns);
+      cout << '\r';
+      identifyFECs();
+      sortFECGrps();
+
+      if(fecGrps.size() == 0) _quit = true;
+      if(fecGrpCnt == fecGrps.size() &&
+         firstGrpCnt - fecGrps[0]->size() < 2) _quit = true;
+
+      fecGrpCnt = fecGrps.size();
+      firstGrpCnt = fecGrps[0]->size();
+
+      simulated = true;
+   }
+
+   cout << "\r" << patternNumber << " patterns simulated." << endl;
+   sortFECGrps();
 }
 
 void
