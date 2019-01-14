@@ -131,8 +131,8 @@ CirGate::removeFanout(const CirGate* torm)
 void
 CirGate::bfsTraversal(GateList& _bfsList, queue<CirGate*>& _queue) const
 {
-   if(isVisited()) return;
-   else visit();
+   assert(!isVisited());
+   visit();
 
    _bfsList.push_back((CirGate*)this);
    for(unsigned i = 0; i < fanouts.size(); i++) {
