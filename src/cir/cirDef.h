@@ -37,6 +37,16 @@ enum GateType
    TOT_GATE
 };
 
+enum Effort
+{
+   LOW_EFF    = 0,
+   MEDIUM_EFF = 1,
+   HIGH_EFF   = 2,
+   SUPER_EFF  = 3,
+
+   TOT_EFF
+};
+
 class TwoFanins
 {
 public:

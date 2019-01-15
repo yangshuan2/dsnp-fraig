@@ -544,12 +544,20 @@ CirMgr::readCircuit(const string& fileName)
 }
 
 void
-CirMgr::DFS() {
+CirMgr::DFS()
+{
    CirGate::resetGlobalRef();
    _dfsList.clear();
    for(unsigned i = 0; i < POs.size(); i++) {
       POs[i]->dfsTraversal(_dfsList);
    }
+}
+
+void
+CirMgr::DFS(CirGate* g, GateList& l) const
+{
+   CirGate::resetGlobalRef();
+   g->dfsTraversal(l);
 }
 
 void
@@ -734,19 +742,34 @@ CirMgr::writeAag(ostream& outfile) const
 void
 CirMgr::writeGate(ostream& outfile, CirGate *g) const
 {
-   unsigned aigcnt = 0;
-   CirGate::resetGlobalRef();
-   g->countGate(aigcnt);
+   GateList _list;
+   DFS(g, _list);
 
-   outfile << "aag " << gateMap.size() - POs.size() - 1 << " "
-           << PIs.size() << " 0 "
+   unsigned _m = 0;
+   unsigned _i = 0;
+   unsigned _a = 0;
+   for(unsigned i = 0; i < _list.size(); i++) {
+      if(_list[i]->getID() > _m) _m = _list[i]->getID();
+      if(_list[i]->getTypeStr() == "PI") _i++;
+      if(_list[i]->getTypeStr() == "AIG") _a++;
+   }
+
+   outfile << "aag " << _m << " "
+           <<_i << " 0 "
            << "1" << " "
-           << aigcnt << "\n";
+           << _a << "\n";
 
    CirGate::resetGlobalRef();
    // Inputs
+   vector<bool> PIMap;
+   PIMap.resize(gateMap.size(), false);
+   for(unsigned i = 0; i < _list.size(); i++)
+      if(_list[i]->getTypeStr() == "PI")
+         PIMap[_list[i]->getID()] = true;
+
    for(unsigned i = 0; i < PIs.size(); i++)
-      outfile << 2 * PIs[i]->getID() << "\n";
+      if(PIMap[PIs[i]->getID()] == true)
+         outfile << 2 * PIs[i]->getID() << "\n";
 
    // Outputs
    outfile << g->getID() * 2 << "\n";
@@ -755,16 +778,17 @@ CirMgr::writeGate(ostream& outfile, CirGate *g) const
    g->writeGate(outfile);
 
    // Symbolic names
+   unsigned j = 0;
    for(unsigned i = 0; i < PIs.size(); i++) {
-      if(PIs[i]->getGateName().size() != 0) {
-         outfile << "i" << i << " "
-                 << PIs[i]->getGateName() << "\n";
+      if(PIMap[PIs[i]->getID()] == true) {
+         if(PIs[i]->getGateName().size() != 0) {
+            outfile << "i" << j << " "
+                    << PIs[i]->getGateName() << "\n";
+         }
+         j++;
       }
    }
-   if(g->getGateName().size() != 0) {
-      outfile << "o" << "0" << " "
-              << g->getGateName() << "\n";
-   }
+   outfile << "o0 Gate_" << g->getID() << "\n";
 
    outfile << "c" << endl;
 }

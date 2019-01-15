@@ -26,7 +26,7 @@ extern CirMgr *cirMgr;
 class CirMgr
 {
 public:
-   CirMgr() : _simLog(0), simulated(false) {}
+   CirMgr() : _simLog(0), simulated(false), _effort(MEDIUM_EFF) {}
    ~CirMgr();
 
    // Access functions
@@ -48,6 +48,7 @@ public:
    void randomSim();
    void fileSim(ifstream&);
    void setSimLog(ofstream *logFile) { _simLog = logFile; }
+   void setEffort(Effort eff) { _effort = eff; }
 
    // Member functions about fraig
    void strash();
@@ -81,6 +82,7 @@ private:
    IdList             fecGrpMap;
 
    bool               simulated;
+   Effort             _effort;
 
    // Update info of gates
    void DFS();
@@ -99,6 +101,7 @@ private:
    void deleteFromFECGrp(CirGate*);
 
    // Helper access methods
+   void DFS(CirGate*, GateList&) const;
    GateList getSortedDFSList() const;
 };
 

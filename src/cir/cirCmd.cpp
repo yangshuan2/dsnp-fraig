@@ -30,7 +30,8 @@ initCirCmd()
          cmdMgr->regCmd("CIRSTRash", 6, new CirStrashCmd) &&
          cmdMgr->regCmd("CIRSIMulate", 6, new CirSimCmd) &&
          cmdMgr->regCmd("CIRFraig", 4, new CirFraigCmd) &&
-         cmdMgr->regCmd("CIRWrite", 4, new CirWriteCmd)
+         cmdMgr->regCmd("CIRWrite", 4, new CirWriteCmd) &&
+         cmdMgr->regCmd("CIREffort", 4, new CirEffortCmd)
       )) {
       cerr << "Registering \"cir\" commands fails... exiting" << endl;
       return false;
@@ -565,3 +566,44 @@ CirWriteCmd::help() const
         << "write the netlist to an ASCII AIG file (.aag)\n";
 }
 
+//----------------------------------------------------------------------
+//    CIREffort [-Low | -Medium | -High | -Super]
+//----------------------------------------------------------------------
+CmdExecStatus
+CirEffortCmd::exec(const string& option)
+{
+   // check option
+   string token;
+   if (!CmdExec::lexSingleOption(option, token))
+      return CMD_EXEC_ERROR;
+
+   if (!cirMgr) {
+      cerr << "Error: circuit is not yet constructed!!" << endl;
+      return CMD_EXEC_ERROR;
+   }
+   if (token.empty() || myStrNCmp("-Medium", token, 2) == 0)
+      cirMgr->setEffort(MEDIUM_EFF);
+   else if (myStrNCmp("-Low", token, 2) == 0)
+      cirMgr->setEffort(LOW_EFF);
+   else if (myStrNCmp("-High", token, 2) == 0)
+      cirMgr->setEffort(HIGH_EFF);
+   else if (myStrNCmp("-Super", token, 2) == 0)
+      cirMgr->setEffort(SUPER_EFF);
+   else
+      return CmdExec::errorOption(CMD_OPT_ILLEGAL, token);
+
+   return CMD_EXEC_DONE;
+}
+
+void
+CirEffortCmd::usage(ostream& os) const
+{  
+   os << "Usage: CIREffort [ -Low | -Medium | -High | -Super "
+      << "]" << endl;
+}
+
+void
+CirEffortCmd::help() const
+{  
+   cout << setw(15) << left << "CIREffort: " << "change prooving effort\n";
+}

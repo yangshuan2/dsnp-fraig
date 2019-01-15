@@ -249,19 +249,34 @@ CirMgr::randomCheckPoint() const
 {
    static vector<unsigned> fecs;
    static vector<unsigned> fec0;
+
+   unsigned magicNumber;
+   switch(_effort) {
+      case LOW_EFF:
+         magicNumber = 3; break;
+      case MEDIUM_EFF:
+         magicNumber = 5; break;
+      case HIGH_EFF:
+         magicNumber = 10; break;
+      case SUPER_EFF:
+         magicNumber = 15; break;
+      default:
+         magicNumber = 5;
+   }
+
    if(fecGrps.size() == 0) return true;
-   if(fecs.size() < 5 && fec0.size() < 5) {
+   if(fecs.size() < magicNumber && fec0.size() < magicNumber) {
       fecs.push_back(fecGrps.size());
       fec0.push_back(fecGrps[0]->size());
       return false;
    }
-   for(unsigned i = 0; i < 4; i++) {
+   for(unsigned i = 0; i < magicNumber - 1; i++) {
       fecs[i] = fecs[i+1];
       fec0[i] = fec0[i+1];
    }
-   fecs[4] = fecGrps.size();
-   fec0[4] = fecGrps[0]->size();
-   for(unsigned i = 0; i < 4; i++) {
+   fecs[magicNumber - 1] = fecGrps.size();
+   fec0[magicNumber - 1] = fecGrps[0]->size();
+   for(unsigned i = 0; i < magicNumber - 1; i++) {
       if((fecs[i] != fecs[i+1]) ||
          (fec0[i] != fec0[i+1])) return false;
    }

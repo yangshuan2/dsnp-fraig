@@ -131,11 +131,17 @@ CirMgr::fraig()
          }
          patternNumber++;
 
-         checkTimes++; i--;
-
-         /*if(checkTimes >= 8) { checkTimes++; i--; }
-         else { deleteFromFECGrp(CirGate::unmask(thisGate)); checkTimes = 0; }
-         */
+         if(_effort == LOW_EFF || _effort == MEDIUM_EFF) {
+            checkTimes++; i--; 
+         }
+         if(_effort == HIGH_EFF) {
+            if(checkTimes >= 4 && checkTimes >= fecGrp->size() / 4) { checkTimes++; i--; }
+            else { deleteFromFECGrp(CirGate::unmask(thisGate)); checkTimes = 0; }
+         }
+         if(_effort == SUPER_EFF) {
+            if(checkTimes >= 2) { checkTimes++; i--; }
+            else { deleteFromFECGrp(CirGate::unmask(thisGate)); checkTimes = 0; }
+         }
       }
       else {
          cout << "UNSAT!!";
