@@ -26,7 +26,7 @@ extern CirMgr *cirMgr;
 class CirMgr
 {
 public:
-   CirMgr() : simulated(false) {}
+   CirMgr() : _simLog(0), simulated(false) {}
    ~CirMgr();
 
    // Access functions
@@ -92,6 +92,8 @@ private:
    void resetFECGrps();
    void simulateAll(const vector<SimValue>&);
    void identifyFECs();
+   void writeSimulationLog(unsigned);
+   bool randomCheckPoint() const;
 
    // Member functions about fraig
    void deleteFromFECGrp(CirGate*);

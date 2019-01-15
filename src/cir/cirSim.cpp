@@ -8,11 +8,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <cassert>
 #include <string>
 #include <limits>
+#include <queue>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "util.h"
@@ -38,9 +40,6 @@ CirMgr::randomSim()
 {
    unsigned patternNumber = 0;
 
-   unsigned fecGrpCnt = 1;
-   unsigned firstGrpCnt = gateMap.size();
-
    bool _quit = false;
    while(!_quit) {
       vector<SimValue> patterns;
@@ -62,18 +61,17 @@ CirMgr::randomSim()
       identifyFECs();
       sortFECGrps();
 
-      if(fecGrps.size() == 0) _quit = true;
-      if(fecGrpCnt == fecGrps.size() &&
-         firstGrpCnt - fecGrps[0]->size() < 2) _quit = true;
+      if(randomCheckPoint()) _quit = true;
 
-      fecGrpCnt = fecGrps.size();
-      firstGrpCnt = fecGrps[0]->size();
+      writeSimulationLog(patternNumber);
 
       simulated = true;
    }
 
    cout << "\r" << patternNumber << " patterns simulated." << endl;
    sortFECGrps();
+
+   _simLog = 0;
 }
 
 void
@@ -90,10 +88,10 @@ CirMgr::fileSim(ifstream& patternFile)
       for(unsigned i = 0; i < sizeof(void*) * 8; i++) {
          patternFile >> buf;
          if(!patternFile) {
-            if(i == 0) _quit = true;
             for(unsigned j = 0; j < buf.size(); j++) 
                patterns[j] << 1;
-            continue;
+            if(i == 0) _quit = true;
+            else continue;
          }
          if(buf.size() != PIs.size()) {
             cerr << "\nError: Pattern(" << buf
@@ -128,11 +126,14 @@ CirMgr::fileSim(ifstream& patternFile)
       cout << '\r';
       identifyFECs();
 
+      writeSimulationLog(patternNumber);
+
       simulated = true;
    }
 
    cout << "\r" << patternNumber << " patterns simulated." << endl;
    sortFECGrps();
+   _simLog = 0;
 }
 
 /*************************************************/
@@ -241,4 +242,76 @@ CirMgr::identifyFECs()
    fecGrps = tmpFecGrps;
    cout << "Total #FEC Group = " << fecGrps.size();
    cout.flush();
+}
+
+bool
+CirMgr::randomCheckPoint() const
+{
+   static vector<unsigned> fecs;
+   static vector<unsigned> fec0;
+   if(fecGrps.size() == 0) return true;
+   if(fecs.size() < 5 && fec0.size() < 5) {
+      fecs.push_back(fecGrps.size());
+      fec0.push_back(fecGrps[0]->size());
+      return false;
+   }
+   for(unsigned i = 0; i < 4; i++) {
+      fecs[i] = fecs[i+1];
+      fec0[i] = fec0[i+1];
+   }
+   fecs[4] = fecGrps.size();
+   fec0[4] = fecGrps[0]->size();
+   for(unsigned i = 0; i < 4; i++) {
+      if((fecs[i] != fecs[i+1]) ||
+         (fec0[i] != fec0[i+1])) return false;
+   }
+   return true;
+}
+
+void
+CirMgr::writeSimulationLog(unsigned patternNumber)
+{
+   if(_simLog == 0) return;
+
+   patternNumber %= (sizeof(size_t) * 8);
+   if(patternNumber == 0) patternNumber = (sizeof(size_t) * 8);
+
+   vector<string> patternsPI;
+   patternsPI.resize(patternNumber);
+   vector<string> patternsPO;
+   patternsPO.resize(patternNumber);
+
+   for(unsigned i = 0; i < PIs.size(); i++) {
+      stringstream buf;
+      buf << PIs[i]->getSimValue();
+
+      string tmp = buf.str();
+      string str;
+      for(unsigned j = 0; j < tmp.size(); j++) {
+         if(tmp[j] != '_') str += tmp[j];
+      }
+
+      for(unsigned j = 0; j < patternNumber; j++) {
+         patternsPI[j] += str[str.size() - j - 1];
+      }
+   }
+
+   for(unsigned i = 0; i < POs.size(); i++) {
+      stringstream buf;
+      buf << POs[i]->getSimValue();
+
+      string tmp = buf.str();
+      string str;
+      for(unsigned j = 0; j < tmp.size(); j++) {
+         if(tmp[j] != '_') str += tmp[j];
+      }
+
+      for(unsigned j = 0; j < patternNumber; j++) {
+         patternsPO[j] += str[str.size() - j - 1];
+      }
+   }
+
+   for(unsigned i = 0; i < patternNumber; i++) {
+      (*_simLog) << patternsPI[i] << ' ' << patternsPO[i] << endl;
+   }
 }

@@ -119,13 +119,12 @@ CirGate::printFanout(int level, int spaces, bool mark) const
 void
 CirGate::removeFanout(const CirGate* torm)
 {
-   vector<size_t>::iterator it = fanouts.begin();
-   for(; it != fanouts.end(); ++it)
-      if(unmask(*it) == torm){
-         // cerr << unmask(*it)->getID() << endl;
-         it = fanouts.erase(it);
-         --it;
-      }
+   vector<size_t> tmp;
+   for(unsigned i = 0; i < fanouts.size(); i++) {
+      if(unmask(fanouts[i]) != torm)
+         tmp.push_back(fanouts[i]);
+   }
+   fanouts = tmp;
 }
 
 /********************
@@ -214,7 +213,6 @@ AIGGate::setFanin(CirGate* cg, bool inv, int num)
 void
 AIGGate::newFanin(CirGate* o, CirGate* n, bool i)
 {
-   assert(unmask(fanin1) == o || unmask(fanin2) == o);
    if(unmask(fanin1) == o) setFanin(n, i != isInverting(fanin1), 1);
    if(unmask(fanin2) == o) setFanin(n, i != isInverting(fanin2), 2);
 }

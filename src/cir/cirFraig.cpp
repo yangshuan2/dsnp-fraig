@@ -56,6 +56,8 @@ CirMgr::strash()
 void
 CirMgr::fraig()
 {
+   if(!simulated) return;
+
    // initialize SATModel
    SATModel satModel(gateMap.size());
    satModel.setGate(constGate);
@@ -129,10 +131,11 @@ CirMgr::fraig()
          }
          patternNumber++;
 
-         // checkTimes++; i--;
+         checkTimes++; i--;
 
-         if(checkTimes >= 8) { checkTimes++; i--; }
+         /*if(checkTimes >= 8) { checkTimes++; i--; }
          else { deleteFromFECGrp(CirGate::unmask(thisGate)); checkTimes = 0; }
+         */
       }
       else {
          cout << "UNSAT!!";
@@ -143,7 +146,7 @@ CirMgr::fraig()
          checkTimes = 0;
       }
       
-      if(patternNumber == 32) {
+      if(patternNumber == sizeof(size_t) * 8 - 1) {
          cout << "\rUpdating by SAT... ";
          simulateAll(patterns);
          identifyFECs();
@@ -228,15 +231,16 @@ CirGate::mergeSTR(CirGate* mergeGate)
 void
 CirGate::mergeFRAIG(CirGate* mergeGate, bool inv)
 {
+   // a merging b => b be deleted
+   cout << "Fraig: " << mergeGate->getID() << " merging ";
+   if(inv) cout << '!';
+   cout << getID() << "..." << endl;
+
    rmRelatingFanouts();
    for(unsigned i = 0; i < fanouts.size(); i++) {
       unmask(fanouts[i])->newFanin(this, mergeGate, inv);
       mergeGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]) ^ inv);
    }
-   // a merging b => b be deleted
-   cout << "Fraig: " << mergeGate->getID() << " merging ";
-   if(inv) cout << '!';
-   cout << getID() << "..." << endl;
 }
 
 void
