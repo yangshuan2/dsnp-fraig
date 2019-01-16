@@ -94,9 +94,9 @@ CirMgr::fraig()
       FECGroup* fecGrp = (FECGroup*)(fecGrp_size_t / 2 * 2);
       if(checkTimes >= fecGrp->size()) { checkTimes = 0; continue; }
 
-      bool inv = CirGate::isInverting(fecGrp_size_t) ^ 
-         CirGate::isInverting((*fecGrp)[0]);
-      size_t thisGate = size_t(_dfsList[i]) ^ inv;
+      bool inv = (CirGate::isInverting(fecGrp_size_t) != 
+               CirGate::isInverting((*fecGrp)[0]));
+      size_t thisGate = size_t(_dfsList[i]) ^ (inv ? 0x1 : 0);
       size_t target = (*fecGrp)[checkTimes];
 
       if(thisGate == target) { 
@@ -245,7 +245,7 @@ CirGate::mergeFRAIG(CirGate* mergeGate, bool inv)
    rmRelatingFanouts();
    for(unsigned i = 0; i < fanouts.size(); i++) {
       unmask(fanouts[i])->newFanin(this, mergeGate, inv);
-      mergeGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]) ^ inv);
+      mergeGate->setFanout(unmask(fanouts[i]), isInverting(fanouts[i]) != inv);
    }
 }
 

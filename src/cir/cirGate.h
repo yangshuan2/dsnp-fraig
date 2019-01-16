@@ -164,7 +164,7 @@ public:
    bool haveFloatingFanin() const;
    bool setFanin(CirGate*, bool, int);
    bool setFanout(CirGate* cg, bool inv) { return false; }
-   void newFanin(CirGate* o, CirGate* n, bool i) { setFanin(n, i ^ isInverting(fanin), 0); }
+   void newFanin(CirGate* o, CirGate* n, bool i) { setFanin(n, i != isInverting(fanin), 0); }
    void rmRelatingFanouts() { unmask(fanin)->removeFanout(this); }
    void simulate(SimValue) { setSimValue(unmask(fanin)->getSimValue(), isInverting(fanin)); }
 private:

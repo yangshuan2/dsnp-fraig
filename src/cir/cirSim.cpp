@@ -45,7 +45,7 @@ CirMgr::randomSim()
       vector<SimValue> patterns;
       patterns.resize(PIs.size());
 
-      unsigned intbits = (sizeof(int) - 1) * 8;
+      unsigned intbits = sizeof(int) * 8;
       unsigned sztbits = sizeof(size_t) * 8;
 
       for(unsigned i = 0; i < PIs.size(); i++) {
@@ -176,6 +176,13 @@ CirMgr::sortFECGrps()
 void
 CirMgr::resetFECGrps()
 {
+   if(fecGrps.size() != 0) {
+      for(unsigned i = 0; i < fecGrps.size(); i++) {
+         if(fecGrps[i] != 0) delete fecGrps[i];
+      }
+   }
+   fecGrps.clear();
+
    FECGroup* fecGrp = new FECGroup;
 
    fecGrp->push_back(size_t(constGate));
@@ -249,6 +256,11 @@ CirMgr::randomCheckPoint() const
 {
    static vector<unsigned> fecs;
    static vector<unsigned> fec0;
+   static const CirMgr* mgr = 0;
+
+   if(mgr != this) {
+      fecs.clear(); fec0.clear(); mgr = this;
+   }
 
    unsigned magicNumber;
    switch(_effort) {

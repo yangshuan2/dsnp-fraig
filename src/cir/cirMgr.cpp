@@ -173,8 +173,8 @@ CirMgr::getFECGrp(unsigned gid) const
    for(unsigned i = 0; i < ret->size(); i++) {
       if(CirGate::unmask((*ret)[i]) == getGate(gid)) 
          return size_t(ret) ^ 
-            (CirGate::isInverting((*ret)[i]) ^
-             CirGate::isInverting((*ret)[0]));
+            ((CirGate::isInverting((*ret)[i]) !=
+             CirGate::isInverting((*ret)[0])) ? 0x1 : 0);
    }
    cerr << gid << '\n';
    assert(0);
@@ -687,7 +687,7 @@ CirMgr::printFECPairs() const
       if(CirGate::isInverting((*fecGrps[i])[0])) inv = true;
       cout << "[" << number++ << "] ";
       for(unsigned j = 0; j < fecGrps[i]->size(); j++) {
-         if(CirGate::isInverting((*fecGrps[i])[j]) ^ inv) cout << "!";
+         if(CirGate::isInverting((*fecGrps[i])[j]) != inv) cout << "!";
          cout << CirGate::unmask((*fecGrps[i])[j])->getID();
          if(j < fecGrps[i]->size() - 1) cout << " ";
       }
