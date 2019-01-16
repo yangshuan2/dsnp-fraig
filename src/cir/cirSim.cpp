@@ -50,7 +50,7 @@ CirMgr::randomSim()
 
       for(unsigned i = 0; i < PIs.size(); i++) {
          for(unsigned j = 0; j < sztbits; j += intbits) {
-            patterns[i] << intbits;
+            patterns[i] <<= intbits;
             patterns[i] += rnGen(INT_MAX);
          }
       }
@@ -89,7 +89,7 @@ CirMgr::fileSim(ifstream& patternFile)
          patternFile >> buf;
          if(!patternFile) {
             for(unsigned j = 0; j < buf.size(); j++) 
-               patterns[j] << 1;
+               patterns[j] <<=1;
             if(i == 0) _quit = true;
             else continue;
          }
@@ -103,9 +103,9 @@ CirMgr::fileSim(ifstream& patternFile)
          }
          for(unsigned j = 0; j < buf.size(); j++) {
             if(buf[j] == '0')
-               patterns[j] << 1;
+               patterns[j] <<=1;
             else if(buf[j] == '1') {
-               patterns[j] << 1;
+               patterns[j] <<=1;
                patterns[j] += 1;
             }
             else {

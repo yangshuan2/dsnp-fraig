@@ -69,7 +69,7 @@ public:
    SimValue() : _value(0) {}
    SimValue(size_t v) : _value(v) {}
    SimValue& operator = (size_t a)   { _value = a; return *this; }
-   SimValue& operator << (int a)     { _value <<= a; return *this; }
+   SimValue& operator <<= (int a)    { _value <<= a; return *this; }
    SimValue& operator += (int a)     { _value += a; return *this; }
    size_t    operator () () const    { return (~_value) ^ (_value >> 8); }
 

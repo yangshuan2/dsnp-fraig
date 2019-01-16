@@ -125,7 +125,7 @@ CirMgr::fraig()
          for(unsigned j = 0; j < PIs.size(); j++) {
             int satVal = satModel.getValue(PIs[j]->getID());
             assert(satVal != -1);
-            patterns[j] << 1;
+            patterns[j] <<=1;
             if(satVal == 1)
                patterns[j] += 1;
          }
