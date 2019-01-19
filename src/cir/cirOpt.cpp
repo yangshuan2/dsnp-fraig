@@ -56,10 +56,9 @@ CirMgr::sweep()
 void
 CirMgr::optimize()
 {
-   for(unsigned i = 1; i < gateMap.size(); i++) {
-      if(gateMap[i] == 0) continue;
-      if(gateMap[i]->getTypeStr() == "AIG")
-         gateMap[i]->trivialOpt(gateMap, constGate);
+   for(unsigned i = 1; i < _dfsList.size(); i++) {
+      if(_dfsList[i]->getTypeStr() == "AIG")
+         _dfsList[i]->trivialOpt(gateMap, constGate);
    }
    updateGateLists();
    sortAllFanouts();
@@ -85,6 +84,10 @@ CirMgr::updateGateLists()
    for(; it != UNDEFs.end(); ++it) {
       unsigned id = (*it)->getID();
       if(gateMap[id] == 0) delete *it;
+      else if(gateMap[id]->definedNotUsed()) {
+         delete *it;
+         gateMap[id] = 0;
+      }
       else tmp.push_back(*it);
    }
    UNDEFs = tmp;

@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <queue>
+#include <utility>
 #include "cirMgr.h"
 #include "cirGate.h"
 #include "sat.h"
@@ -272,6 +273,11 @@ SATModel::setGate(CirGate* gate)
    if(gate->getTypeStr() == "CONST") {
       Var vv = solver.newVar();
       varMap[0] = vv;
+      solver.addAigCNF(vv, vf, false, vf, true);
+   }
+   else if(gate->getTypeStr() == "UNDEF") {
+      Var vv = solver.newVar();
+      varMap[gate->getID()] = vv;
       solver.addAigCNF(vv, vf, false, vf, true);
    }
    if(gate->getTypeStr() != "AIG") return;

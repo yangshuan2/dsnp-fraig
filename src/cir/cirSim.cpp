@@ -256,10 +256,9 @@ CirMgr::randomCheckPoint() const
 {
    static vector<unsigned> fecs;
    static vector<unsigned> fec0;
-   static const CirMgr* mgr = 0;
 
-   if(mgr != this) {
-      fecs.clear(); fec0.clear(); mgr = this;
+   if(!simulated) {
+      fecs.clear(); fec0.clear();
    }
 
    unsigned magicNumber;
