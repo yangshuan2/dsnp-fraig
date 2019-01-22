@@ -1,3 +1,3 @@
 # FRAIG
 
-### The final project of DSnP.
+The final project of DSnP.
